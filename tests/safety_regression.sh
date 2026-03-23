@@ -33,6 +33,13 @@ for path in "${required_files[@]}"; do
     }
 done
 
+first_line="$(sed -n '1p' SKILL.md)"
+fourth_line="$(sed -n '4p' SKILL.md)"
+[[ "${first_line}" == "---" && "${fourth_line}" == "---" ]] || {
+    echo "SKILL.md must start with YAML front matter." >&2
+    exit 1
+}
+
 [[ ! -e "scripts/install_coolify_cli.sh" ]] || {
     echo "Legacy installer still present." >&2
     exit 1
