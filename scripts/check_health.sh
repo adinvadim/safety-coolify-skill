@@ -1,47 +1,49 @@
-#!/bin/bash
-# Quick health check for Coolify services
-# Usage: ./check_health.sh
+#!/usr/bin/env bash
 
-set -e
+set -euo pipefail
 
-echo "🔍 Coolify Health Check"
-echo "======================="
-echo ""
+ROOT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
+API_HELPER="${ROOT_DIR}/scripts/coolify_api.sh"
 
-# Check if coolify is installed
-if ! command -v coolify &> /dev/null; then
-    echo "❌ Coolify CLI not found"
-    echo "   Run: scripts/install_coolify_cli.sh"
+if [[ -z "${COOLIFY_BASE_URL:-}" ]]; then
+    echo "COOLIFY_BASE_URL is required." >&2
     exit 1
 fi
 
-echo "✅ Coolify CLI: $(coolify version 2>&1)"
-echo ""
+echo "Coolify health check"
+echo "Base URL: ${COOLIFY_BASE_URL}"
+echo
 
-# Check context configuration
-echo "📋 Configured Contexts:"
-coolify context list
-echo ""
+echo "Instance health:"
+"${API_HELPER}" /api/health
+echo
 
-# Verify connection
-echo "🔌 Connection Status:"
-if coolify context verify 2>&1 | grep -q "successful"; then
-    coolify context verify
-    echo ""
+if [[ -z "${COOLIFY_TOKEN_FILE:-}" && -z "${COOLIFY_API_TOKEN:-}" ]]; then
+    echo "Authenticated checks skipped: set COOLIFY_TOKEN_FILE for version and resource checks."
+    exit 0
+fi
 
-    # Show resources
-    echo "📦 Resources:"
-    coolify resource list
-    echo ""
+version_json="$("${API_HELPER}" --raw /api/v1/version)"
+resources_json="$("${API_HELPER}" --raw /api/v1/resources)"
 
-    # Show servers
-    echo "🖥️  Servers:"
-    coolify server list
-    echo ""
+echo "Authenticated summary:"
+if command -v jq >/dev/null 2>&1; then
+    version_value="$(printf '%s' "${version_json}" | jq -r '.version // .message // .data.version // "unknown"')"
+    resource_count="$(printf '%s' "${resources_json}" | jq 'length')"
+    unhealthy_count="$(printf '%s' "${resources_json}" | jq '[.[] | select(((.status // "") | ascii_downcase) | contains("unhealthy"))] | length')"
 
-    echo "✅ Health check complete!"
+    echo "Version: ${version_value}"
+    echo "Resources: ${resource_count}"
+    echo "Unhealthy resources: ${unhealthy_count}"
+    echo
+    echo "First resources:"
+    printf '%s' "${resources_json}" | jq -r '.[:10][] | "\(.type // "resource")\t\(.name // .uuid // "unknown")\t\(.status // "unknown")"'
 else
-    echo "❌ Connection failed"
-    echo "   Check your API token and context configuration"
-    exit 1
+    echo "jq not found; printing wrapped API output instead."
+    echo
+    echo "Version payload:"
+    "${API_HELPER}" /api/v1/version
+    echo
+    echo "Resources payload:"
+    "${API_HELPER}" /api/v1/resources
 fi
