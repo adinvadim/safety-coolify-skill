@@ -8,6 +8,7 @@ Safer fork of `ajmcclary/coolify-manager`. This version keeps validated Coolify 
 - Removed inline secret examples from commands
 - Removed legacy CMS troubleshooting content
 - Switched to API-first, read-only defaults
+- Added a safe bounded workflow for application log review
 - Added explicit handling rules for untrusted remote output
 - Added a regression check for the previously flagged patterns
 
@@ -30,6 +31,7 @@ Run the bundled checks:
 ```bash
 bash scripts/check_health.sh
 bash scripts/coolify_api.sh /api/v1/resources
+bash scripts/coolify_logs.sh APP_UUID 100
 ```
 
 ## Safety Model
@@ -56,6 +58,7 @@ safety-coolify-skill/
 ├── scripts/
 │   ├── check_health.sh
 │   └── coolify_api.sh
+│   └── coolify_logs.sh
 └── tests/
     └── safety_regression.sh
 ```
@@ -66,6 +69,7 @@ API guidance in this fork is validated against the official Coolify docs:
 
 - Authorization model and API base paths
 - Health and version checks
+- Application log retrieval
 - Resource, application, service, database, deployment, and env metadata endpoints
 
 CLI guidance in this fork is validated against the official `coollabsio/coolify-cli` README and release metadata, but this fork intentionally does not automate upstream installation flows.

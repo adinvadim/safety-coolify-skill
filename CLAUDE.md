@@ -24,6 +24,7 @@ This skill follows the Claude Skills specification with three main components:
 
 2. **scripts/** - Executable automation
    - `coolify_api.sh`: Read-only API helper that reads secrets from env/file without printing them
+   - `coolify_logs.sh`: Bounded application-log reader built on the official API
    - `check_health.sh`: Read-only instance health and inventory check
 
 3. **references/** - Loadable reference documentation
@@ -53,7 +54,8 @@ bash scripts/check_health.sh
 1. `bash scripts/coolify_api.sh /api/health`
 2. `bash scripts/coolify_api.sh /api/v1/version`
 3. `bash scripts/coolify_api.sh /api/v1/resources`
-4. Inspect the relevant `/applications/{uuid}`, `/services/{uuid}`, `/databases/{uuid}`, or `/deployments/{uuid}` endpoint.
+4. `bash scripts/coolify_logs.sh APP_UUID 100` when the task is log analysis.
+5. Inspect the relevant `/applications/{uuid}`, `/services/{uuid}`, `/databases/{uuid}`, or `/deployments/{uuid}` endpoint.
 
 ## Common Development Tasks
 
@@ -62,6 +64,7 @@ bash scripts/check_health.sh
 Validate shell script syntax:
 ```bash
 bash -n scripts/coolify_api.sh
+bash -n scripts/coolify_logs.sh
 bash -n scripts/check_health.sh
 bash -n tests/safety_regression.sh
 ```
@@ -113,6 +116,7 @@ Use only official sources when updating this repo:
 
 - `https://coolify.io/docs/api-reference/authorization`
 - `https://coolify.io/docs/api-reference/api/operations/version`
+- `https://coolify.io/docs/api-reference/api/operations/get-application-logs-by-uuid`
 - `https://github.com/coollabsio/coolify-cli`
 
 ## Skill Validation
@@ -129,6 +133,7 @@ The skill must pass validation before packaging. Key requirements:
 
 All references in SKILL.md use relative paths:
 - Scripts: `scripts/coolify_api.sh`, `scripts/check_health.sh`
+  `scripts/coolify_logs.sh`
 - References: `references/api_endpoints.md`, `references/cli_commands.md`
 
 These paths are relative to the skill root directory.

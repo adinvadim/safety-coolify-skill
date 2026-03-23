@@ -21,6 +21,7 @@ required_files=(
     "references/api_endpoints.md"
     "references/cli_commands.md"
     "scripts/coolify_api.sh"
+    "scripts/coolify_logs.sh"
     "scripts/check_health.sh"
     "docs/VALIDATION.md"
 )
@@ -57,6 +58,8 @@ forbidden_patterns=(
     'YOUR_TOKEN'
     'coolify context add'
     '--show-sensitive'
+    '--follow'
+    '--debuglogs'
 )
 
 for pattern in "${forbidden_patterns[@]}"; do
