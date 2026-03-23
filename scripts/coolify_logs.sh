@@ -13,9 +13,11 @@ Arguments:
   LINES     Optional bounded tail length. Default: 100.
 
 Environment:
-  COOLIFY_BASE_URL    Required. Example: https://coolify.example.com
-  COOLIFY_TOKEN_FILE  Preferred. File containing the API token.
-  COOLIFY_API_TOKEN   Optional fallback when a token file is not available.
+  COOLIFY_BASE_URL     Optional override. Example: https://coolify.example.com
+  COOLIFY_TOKEN_FILE   Optional override. File containing the API token.
+  COOLIFY_API_TOKEN    Optional override when a token file is not available.
+  COOLIFY_CONFIG_FILE  Optional config path override. Default: ~/.config/coolify/config.json
+  COOLIFY_CONTEXT_NAME Optional context name override for config lookup.
 EOF
 }
 

@@ -112,6 +112,45 @@ Use:
 bash scripts/coolify_api.sh /api/v1/applications/APP_UUID/envs
 ```
 
+### Application Environment Mutations
+
+Official docs expose these endpoints:
+
+```text
+POST /api/v1/applications/{uuid}/envs
+PATCH /api/v1/applications/{uuid}/envs
+PATCH /api/v1/applications/{uuid}/envs/bulk
+DELETE /api/v1/applications/{uuid}/envs/{env_uuid}
+```
+
+Important request-body fields from the docs:
+
+- `key`
+- `value`
+- `is_preview`
+- `is_literal`
+- `is_multiline`
+- `is_shown_once`
+
+Bulk update request shape:
+
+```json
+{
+  "data": [
+    {
+      "key": "string",
+      "value": "string",
+      "is_preview": true,
+      "is_literal": true,
+      "is_multiline": true,
+      "is_shown_once": true
+    }
+  ]
+}
+```
+
+Prefer the official CLI `env sync --file` workflow for sensitive values instead of constructing raw mutation requests by hand.
+
 ### Service Details
 
 ```text
@@ -123,6 +162,20 @@ Use:
 ```bash
 bash scripts/coolify_api.sh /api/v1/services/SERVICE_UUID
 ```
+
+### Service Environment Mutations
+
+Official docs expose the same mutation pattern for services:
+
+```text
+GET /api/v1/services/{uuid}/envs
+POST /api/v1/services/{uuid}/envs
+PATCH /api/v1/services/{uuid}/envs
+PATCH /api/v1/services/{uuid}/envs/bulk
+DELETE /api/v1/services/{uuid}/envs/{env_uuid}
+```
+
+Prefer file-based sync through the CLI for sensitive values.
 
 ### Database Details
 

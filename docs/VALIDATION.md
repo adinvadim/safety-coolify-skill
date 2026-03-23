@@ -12,6 +12,17 @@ This repository was revalidated against official Coolify sources and then intent
 - Coolify API authorization docs: `https://coolify.io/docs/api-reference/authorization`
 - Coolify API version endpoint docs: `https://coolify.io/docs/api-reference/api/operations/version`
 - Coolify API application logs docs: `https://coolify.io/docs/api-reference/api/operations/get-application-logs-by-uuid`
+- Coolify API env docs:
+  - `https://coolify.io/docs/api-reference/api/operations/list-envs-by-application-uuid`
+  - `https://coolify.io/docs/api-reference/api/operations/create-env-by-application-uuid`
+  - `https://coolify.io/docs/api-reference/api/operations/update-env-by-application-uuid`
+  - `https://coolify.io/docs/api-reference/api/operations/update-envs-by-application-uuid`
+  - `https://coolify.io/docs/api-reference/api/operations/delete-env-by-application-uuid`
+  - `https://coolify.io/docs/api-reference/api/operations/list-envs-by-service-uuid`
+  - `https://coolify.io/docs/api-reference/api/operations/create-env-by-service-uuid`
+  - `https://coolify.io/docs/api-reference/api/operations/update-env-by-service-uuid`
+  - `https://coolify.io/docs/api-reference/api/operations/update-envs-by-service-uuid`
+  - `https://coolify.io/docs/api-reference/api/operations/delete-env-by-service-uuid`
 - Coolify CLI upstream repository: `https://github.com/coollabsio/coolify-cli`
 
 ## Confirmed Facts
@@ -21,6 +32,8 @@ This repository was revalidated against official Coolify sources and then intent
 - Authenticated endpoints live under `/api/v1`.
 - Health is outside the `/v1` prefix.
 - Application logs are available at `GET /applications/{uuid}/logs` with a `lines` query parameter and default `100`.
+- Application envs support list, create, update, bulk update, and delete endpoints.
+- The upstream CLI exposes `app env list|get|create|update|delete|sync` and `service env list|get|create|update|delete|sync`.
 - The upstream CLI documents context verification, version checks, resource listing, and object inspection commands.
 - The upstream CLI repository showed `v1.4.0` as the latest release at validation time.
 

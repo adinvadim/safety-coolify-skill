@@ -9,6 +9,7 @@ Safer fork of `ajmcclary/coolify-manager`. This version keeps validated Coolify 
 - Removed legacy CMS troubleshooting content
 - Switched to API-first, read-only defaults
 - Added a safe bounded workflow for application log review
+- Added validated CLI guidance for environment-variable changes
 - Added explicit handling rules for untrusted remote output
 - Added a regression check for the previously flagged patterns
 
@@ -25,6 +26,8 @@ chmod 600 "$HOME/.config/coolify/token"
 export COOLIFY_BASE_URL="https://coolify.example.com"
 export COOLIFY_TOKEN_FILE="$HOME/.config/coolify/token"
 ```
+
+If `coolify` is already configured locally, you usually do not need those exports. The helper scripts auto-read the default context from `~/.config/coolify/config.json`.
 
 Run the bundled checks:
 
@@ -70,6 +73,7 @@ API guidance in this fork is validated against the official Coolify docs:
 - Authorization model and API base paths
 - Health and version checks
 - Application log retrieval
+- Environment variable CRUD and bulk update endpoints
 - Resource, application, service, database, deployment, and env metadata endpoints
 
 CLI guidance in this fork is validated against the official `coollabsio/coolify-cli` README and release metadata, but this fork intentionally does not automate upstream installation flows.

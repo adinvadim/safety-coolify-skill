@@ -9,13 +9,16 @@ Usage: coolify_api.sh [--raw] /api/path
 Read-only Coolify API helper.
 
 Environment:
-  COOLIFY_BASE_URL    Required. Example: https://coolify.example.com
-  COOLIFY_TOKEN_FILE  Preferred. File containing the API token.
-  COOLIFY_API_TOKEN   Optional fallback when a token file is not available.
+  COOLIFY_BASE_URL     Optional override. Example: https://coolify.example.com
+  COOLIFY_TOKEN_FILE   Optional override. File containing the API token.
+  COOLIFY_API_TOKEN    Optional override when a token file is not available.
+  COOLIFY_CONFIG_FILE  Optional config path override. Default: ~/.config/coolify/config.json
+  COOLIFY_CONTEXT_NAME Optional context name override for config lookup.
 
 Notes:
   - Only GET requests are supported by this helper.
   - Output is wrapped with untrusted-data markers unless --raw is used.
+  - If no overrides are set, the helper reads the default Coolify context from local CLI config.
 EOF
 }
 
@@ -48,11 +51,6 @@ if [[ -z "${ENDPOINT}" ]]; then
     exit 1
 fi
 
-if [[ -z "${COOLIFY_BASE_URL:-}" ]]; then
-    echo "COOLIFY_BASE_URL is required." >&2
-    exit 1
-fi
-
 if [[ "${ENDPOINT}" != /* ]]; then
     echo "Endpoint must start with '/'." >&2
     exit 1
@@ -63,9 +61,37 @@ if [[ -n "${COOLIFY_TOKEN_FILE:-}" && -n "${COOLIFY_API_TOKEN:-}" ]]; then
     exit 1
 fi
 
-BASE_URL="${COOLIFY_BASE_URL%/}"
-REQUEST_URL="${BASE_URL}${ENDPOINT}"
+CONFIG_FILE="${COOLIFY_CONFIG_FILE:-${HOME}/.config/coolify/config.json}"
+CONTEXT_NAME="${COOLIFY_CONTEXT_NAME:-}"
+BASE_URL="${COOLIFY_BASE_URL:-}"
 TOKEN=""
+
+resolve_from_config() {
+    [[ -r "${CONFIG_FILE}" ]] || return 1
+    command -v jq >/dev/null 2>&1 || return 1
+
+    local selector
+    if [[ -n "${CONTEXT_NAME}" ]]; then
+        selector='.instances // [] | map(select(.name == $context_name)) | .[0]'
+    else
+        selector='.instances // [] | map(select(.default == true)) | .[0]'
+    fi
+
+    local context_json
+    context_json="$(
+        jq -c --arg context_name "${CONTEXT_NAME}" "${selector}" "${CONFIG_FILE}"
+    )"
+
+    [[ -n "${context_json}" && "${context_json}" != "null" ]] || return 1
+
+    if [[ -z "${BASE_URL}" ]]; then
+        BASE_URL="$(printf '%s' "${context_json}" | jq -r '.fqdn // empty')"
+    fi
+
+    if [[ -z "${TOKEN}" ]]; then
+        TOKEN="$(printf '%s' "${context_json}" | jq -r '.token // empty')"
+    fi
+}
 
 if [[ -n "${COOLIFY_TOKEN_FILE:-}" ]]; then
     if [[ ! -r "${COOLIFY_TOKEN_FILE}" ]]; then
@@ -77,8 +103,18 @@ elif [[ -n "${COOLIFY_API_TOKEN:-}" ]]; then
     TOKEN="${COOLIFY_API_TOKEN//$'\n'/}"
 fi
 
+resolve_from_config || true
+
+if [[ -z "${BASE_URL}" ]]; then
+    echo "Could not resolve Coolify base URL. Set COOLIFY_BASE_URL or configure a default context in ${CONFIG_FILE}." >&2
+    exit 1
+fi
+
+BASE_URL="${BASE_URL%/}"
+REQUEST_URL="${BASE_URL}${ENDPOINT}"
+
 if [[ -z "${TOKEN}" && "${ENDPOINT}" != "/api/health" ]]; then
-    echo "Authenticated endpoints require COOLIFY_TOKEN_FILE or COOLIFY_API_TOKEN." >&2
+    echo "Authenticated endpoints require a token. Set COOLIFY_TOKEN_FILE/COOLIFY_API_TOKEN or configure a token in ${CONFIG_FILE}." >&2
     exit 1
 fi
 

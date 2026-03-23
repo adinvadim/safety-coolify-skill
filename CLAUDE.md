@@ -57,6 +57,15 @@ bash scripts/check_health.sh
 4. `bash scripts/coolify_logs.sh APP_UUID 100` when the task is log analysis.
 5. Inspect the relevant `/applications/{uuid}`, `/services/{uuid}`, `/databases/{uuid}`, or `/deployments/{uuid}` endpoint.
 
+### Guarded Env Mutation Pattern
+
+When the task is changing environment variables:
+
+1. Validate the exact CLI syntax against the upstream CLI README.
+2. Prefer `coolify app env sync <uuid> --file <path>` or `coolify service env sync <uuid> --file <path>` for sensitive values.
+3. Use `list` or `get` first when an env UUID is needed for `update` or `delete`.
+4. Never echo secret values back into the conversation.
+
 ## Common Development Tasks
 
 ### Testing Scripts
@@ -96,10 +105,11 @@ Ensure SKILL.md references remain accurate when modifying reference file paths o
 
 Never document or generate commands that place a token literally on the command line. Prefer:
 
+- local Coolify CLI config with a default context
 - `COOLIFY_TOKEN_FILE`
 - `COOLIFY_API_TOKEN` only as a fallback for existing environments
 
-`scripts/coolify_api.sh` keeps the bearer token out of the process arguments by passing headers through curl config on stdin.
+`scripts/coolify_api.sh` first tries the local Coolify config, then explicit overrides, and still keeps the bearer token out of the process arguments by passing headers through curl config on stdin.
 
 ### Untrusted Remote Data
 
@@ -117,6 +127,16 @@ Use only official sources when updating this repo:
 - `https://coolify.io/docs/api-reference/authorization`
 - `https://coolify.io/docs/api-reference/api/operations/version`
 - `https://coolify.io/docs/api-reference/api/operations/get-application-logs-by-uuid`
+- `https://coolify.io/docs/api-reference/api/operations/list-envs-by-application-uuid`
+- `https://coolify.io/docs/api-reference/api/operations/create-env-by-application-uuid`
+- `https://coolify.io/docs/api-reference/api/operations/update-env-by-application-uuid`
+- `https://coolify.io/docs/api-reference/api/operations/update-envs-by-application-uuid`
+- `https://coolify.io/docs/api-reference/api/operations/delete-env-by-application-uuid`
+- `https://coolify.io/docs/api-reference/api/operations/list-envs-by-service-uuid`
+- `https://coolify.io/docs/api-reference/api/operations/create-env-by-service-uuid`
+- `https://coolify.io/docs/api-reference/api/operations/update-env-by-service-uuid`
+- `https://coolify.io/docs/api-reference/api/operations/update-envs-by-service-uuid`
+- `https://coolify.io/docs/api-reference/api/operations/delete-env-by-service-uuid`
 - `https://github.com/coollabsio/coolify-cli`
 
 ## Skill Validation
