@@ -48,8 +48,9 @@ credentials exist; skipped authenticated checks are reported explicitly.
 Environment reads expose only keys, UUIDs, flags and `configured`, including through
 `coolify_api.sh --raw .../envs`. Values and resolved values are withheld. `configured: null` means the API withheld
 the value; it does not mean the variable is empty. Generic
-resource reads redact common credential/configuration fields; this is best-effort
-field filtering, not a guarantee that arbitrary application logs contain no secrets.
+resource reads project a fixed metadata allowlist: unknown fields, connection URLs
+and configuration blobs are withheld. Metadata strings with URI userinfo or private
+key blocks are redacted too. Arbitrary application logs can still contain secrets.
 Prefer the dedicated metadata and deployment commands over full payloads.
 
 Deployment inspection makes one bounded request. It returns commit, status,

@@ -180,6 +180,27 @@ class Reads(unittest.TestCase):
             self.assertIn('server1', result.stdout)
             self.assertIn('"is_logdrain_enabled": true', result.stdout)
 
+    def test_database_urls_and_unknown_fields_are_withheld_by_default(self):
+        self.routes['/api/v1/databases/db1'] = (200, {'name': 'db1', 'status': 'running',
+            'internal_db_url': 'postgresql://postgres:' + VALUE + '@db:5432/db',
+            'external_db_url': 'postgresql://postgres:' + VALUE + '@public:5432/db',
+            'future_credential_alias': VALUE, 'settings': {'future_option': VALUE}})
+        for result in (self.api('/api/v1/databases/db1'), self.run_script('coolify_api', '/api/v1/databases/db1')):
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertNotIn(VALUE, result.stdout)
+            self.assertNotIn('internal_db_url', result.stdout)
+            self.assertIn('db1', result.stdout)
+            self.assertIn('running', result.stdout)
+
+    def test_metadata_strings_do_not_reveal_uri_credentials_or_private_keys(self):
+        self.routes['/api/v1/applications/app1'] = (200, {'uuid': 'app1',
+            'git_repository': 'https://user:' + VALUE + '@git.invalid/repo',
+            'message': '-----BEGIN PRIVATE KEY-----' + VALUE})
+        result = self.api('/api/v1/applications/app1')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertNotIn(VALUE, result.stdout)
+        self.assertIn('app1', result.stdout)
+
     def test_deployment_log_shapes_hidden_records_and_states(self):
         for logs in ('first\nsecond\nlast', json.dumps([{'output': 'first'}, {'output': VALUE, 'hidden': True}, {'output': 'last'}]), [{'output': 'last'}]):
             for state, exit_code in [('finished', 0), ('queued', 2), ('in_progress', 2), ('failed', 5), ('cancelled-by-user', 5), ('unexpected', 1)]:

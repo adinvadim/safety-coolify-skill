@@ -21,10 +21,17 @@ READ_PATH = re.compile(
     rf'(?:applications|services)/{ID}/envs|applications/{ID}/logs|'
     rf'deployments/{ID}|deployments/applications/{ID}))\Z'
 )
-SENSITIVE = re.compile(
-    r'token|password|secret|private_key|authorization|credential|api[_-]?key|license[_-]?key|access[_-]?key|'
-    r'docker_compose|(?:^|_)dockerfile$|custom_labels|(?:^|_)command(?:_|$)|config(?:uration)?(?:_|$)|'
-    r'environment_variables|sentinel_custom_url', re.I)
+# Positive projection: new upstream fields must not silently become public output.
+METADATA = frozenset('''uuid id name type status key configured is_preview is_runtime
+is_buildtime is_build_time is_literal is_multiline is_shown_once is_shared
+git_repository git_branch git_commit_sha commit build_pack dockerfile_location
+base_directory ports_exposes docker_registry_image_name docker_registry_image_tag
+fqdn destination destination_id server server_id server_uuid server_name settings
+ip user port is_reachable is_usable concurrent_builds is_build_server
+is_logdrain_enabled health_check_enabled health_check_path is_auto_deploy_enabled
+created_at updated_at finished_at last_online_at deployment_uuid application_name
+deployments count total health authenticated_checks version message resources
+unhealthy logs applications services databases projects servers data'''.split())
 
 
 class ReadError(Exception):
@@ -174,9 +181,12 @@ def env_metadata(payload):
 
 def sanitize(value):
     if isinstance(value, dict):
-        return {k: '[REDACTED]' if SENSITIVE.search(k) else sanitize(v) for k, v in value.items()}
+        return {k: sanitize(v) for k, v in value.items() if k in METADATA}
     if isinstance(value, list):
         return [sanitize(v) for v in value]
+    if isinstance(value, str) and (re.search(r'[A-Za-z][A-Za-z0-9+.-]*://[^\s/]*@', value)
+                                  or re.search(r'-----BEGIN [A-Z ]*PRIVATE KEY-----', value)):
+        return '[REDACTED]'
     return value
 
 

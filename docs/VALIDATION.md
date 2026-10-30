@@ -35,8 +35,10 @@ for red/green evidence. Test outputs and review reports remain outside Git.
 
 ## Limits
 
-Common sensitive JSON fields are redacted recursively; env routes project an
-allowlist. This is not general secret detection for arbitrary logs or free-form
+Generic JSON reads recursively project a metadata allowlist; unknown fields,
+connection URLs and configuration blobs are omitted. Env routes use their own
+metadata projection. URI userinfo and private-key blocks in retained strings are
+redacted. This is not general secret detection for arbitrary logs or free-form
 remote text. Endpoint filtering and markers do not make output trusted. HTTP is
 supported for explicitly configured private-network instances; TLS verification
 is retained for HTTPS. Redirects fail closed. The 20-second timeout is per socket

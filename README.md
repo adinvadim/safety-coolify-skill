@@ -18,7 +18,8 @@ See [SKILL.md](SKILL.md) for context selection, output boundaries and exit codes
 `--raw` removes markers, never credential filtering. Different-origin URL overrides
 require explicit matching credentials. Requests reject redirects and endpoints
 outside the supported read-only allowlist. Env reads always omit values. Generic
-field filtering is best effort; arbitrary logs can still contain application secrets.
+reads expose a metadata allowlist and omit unknown fields, including database
+connection URLs. Arbitrary logs can still contain application secrets.
 
 For an existing CLI, `bash scripts/check_cli.sh` probes `coolify version` and the
 config location. `coolify --version` is unsupported. No executable is downloaded.

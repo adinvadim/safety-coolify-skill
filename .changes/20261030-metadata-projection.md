@@ -1,0 +1,2 @@
+- Generic API reads now expose a metadata allowlist, omitting unknown fields and database connection URLs by default; retained metadata also filters credentialed URIs and private-key blocks.
+- RU: Обычные API-чтения выводят только разрешённые метаданные: неизвестные поля и строки подключения скрыты по умолчанию; URI с credentials и блоки приватных ключей дополнительно фильтруются.
