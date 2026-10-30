@@ -8,6 +8,7 @@ cd "${ROOT_DIR}"
 scan_paths=(
     "SKILL.md"
     "README.md"
+    "AGENTS.md"
     "CLAUDE.md"
     "references"
     "scripts"
@@ -17,9 +18,14 @@ scan_paths=(
 required_files=(
     "SKILL.md"
     "README.md"
+    "AGENTS.md"
     "CLAUDE.md"
     "references/api_endpoints.md"
     "references/cli_commands.md"
+    "scripts/check_cli.sh"
+    "scripts/coolify_read.py"
+    "scripts/coolify_envs.sh"
+    "scripts/coolify_deployment.sh"
     "scripts/coolify_api.sh"
     "scripts/coolify_logs.sh"
     "scripts/check_health.sh"
@@ -67,14 +73,25 @@ forbidden_patterns=(
     '--show-sensitive'
     '--follow'
     '--debuglogs'
+    '^[[:space:]]*coolify --version([[:space:]]|$)'
 )
 
-for pattern in "${forbidden_patterns[@]}"; do
-    if rg -n -i --glob '!tests/**' -- "${pattern}" "${scan_paths[@]}" >/tmp/safety-regression-rg.txt; then
-        echo "Forbidden pattern detected: ${pattern}" >&2
-        cat /tmp/safety-regression-rg.txt >&2
-        exit 1
-    fi
-done
+python3 - "${scan_paths[@]}" -- "${forbidden_patterns[@]}" <<'PYSCAN'
+from pathlib import Path
+import re
+import sys
+split = sys.argv.index('--')
+paths = sys.argv[1:split]
+patterns = sys.argv[split + 1:]
+for source in paths:
+    path = Path(source)
+    for entry in path.rglob('*') if path.is_dir() else [path]:
+        if not entry.is_file() or '__pycache__' in entry.parts or entry.suffix == '.pyc':
+            continue
+        text = entry.read_text()
+        for pattern in patterns:
+            if re.search(pattern.replace('[[:space:]]', r'\s'), text, re.I | re.M):
+                raise SystemExit(f'Forbidden pattern detected in {entry}: {pattern}')
+PYSCAN
 
 echo "Safety regression checks passed."

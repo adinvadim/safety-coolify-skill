@@ -1,61 +1,45 @@
 ---
-summary: "Official-source validation and safety deltas for the hardened Coolify skill fork."
+summary: "Official contracts and offline validation for Coolify reads."
 read_when: [validation, security, release]
 ---
 
 # Validation
 
-This repository was revalidated against official Coolify sources and then intentionally narrowed to a safer operating model.
+Validated 2026-10-30 against official sources:
 
-## Official Sources Used
+- [Deployment detail](https://coolify.io/docs/api/endpoints/deployments/get-deployment-by-uuid): GET `/api/v1/deployments/{uuid}`; status, commit, timestamps, logs string; 401/404 errors.
+- [Application env list](https://coolify.io/docs/api/endpoints/applications/list-envs-by-application-uuid): GET `/api/v1/applications/{uuid}/envs`; the helper intentionally projects metadata instead of exposing values.
+- [Application logs](https://coolify.io/docs/api-reference/api/operations/get-application-logs-by-uuid): GET `/api/v1/applications/{uuid}/logs?lines=100`.
+- [CLI README](https://github.com/coollabsio/coolify-cli#readme): `version` subcommand, config location and file-based env sync. Installed versions differ; use local help for mutation flags.
 
-- Coolify API authorization docs: `https://coolify.io/docs/api-reference/authorization`
-- Coolify API version endpoint docs: `https://coolify.io/docs/api-reference/api/operations/version`
-- Coolify API application logs docs: `https://coolify.io/docs/api-reference/api/operations/get-application-logs-by-uuid`
-- Coolify API env docs:
-  - `https://coolify.io/docs/api-reference/api/operations/list-envs-by-application-uuid`
-  - `https://coolify.io/docs/api-reference/api/operations/create-env-by-application-uuid`
-  - `https://coolify.io/docs/api-reference/api/operations/update-env-by-application-uuid`
-  - `https://coolify.io/docs/api-reference/api/operations/update-envs-by-application-uuid`
-  - `https://coolify.io/docs/api-reference/api/operations/delete-env-by-application-uuid`
-  - `https://coolify.io/docs/api-reference/api/operations/list-envs-by-service-uuid`
-  - `https://coolify.io/docs/api-reference/api/operations/create-env-by-service-uuid`
-  - `https://coolify.io/docs/api-reference/api/operations/update-env-by-service-uuid`
-  - `https://coolify.io/docs/api-reference/api/operations/update-envs-by-service-uuid`
-  - `https://coolify.io/docs/api-reference/api/operations/delete-env-by-service-uuid`
-- Coolify CLI upstream repository: `https://github.com/coollabsio/coolify-cli`
+## Local gate
 
-## Confirmed Facts
+`bash bin/check` parses Python and skill YAML, checks shell syntax/lint, runs
+static safety checks and `tests/test_reads.py` against a real local HTTP server.
+The `.githooks/pre-commit` invokes that gate when `core.hooksPath=.githooks`.
+Runtime needs only Python 3.9+ and Bash. Checks additionally need PyYAML,
+ShellCheck. No hosted CI is added.
 
-- Coolify API auth uses a bearer token generated from `Keys & Tokens` / `API tokens`.
-- The API root is `/api`.
-- Authenticated endpoints live under `/api/v1`.
-- Health is outside the `/v1` prefix.
-- Application logs are available at `GET /applications/{uuid}/logs` with a `lines` query parameter and default `100`.
-- Application envs support list, create, update, bulk update, and delete endpoints.
-- The upstream CLI exposes `app env list|get|create|update|delete|sync` and `service env list|get|create|update|delete|sync`.
-- The upstream CLI documents context verification, version checks, resource listing, and object inspection commands.
-- The upstream CLI repository showed `v1.4.0` as the latest release at validation time.
+Behavioral contracts include origin/token pairing, explicit file credentials,
+public health without auth, named-context errors, rejected redirects and mutation
+paths, env-value omission even with `--raw`, reflected-token filtering, bounded
+application/deployment logs, hidden-record omission, structured application logs preserved as text, unknown
+configuration state when values are withheld, the upstream `is_buildtime` flag,
+JSON/text deployment log
+forms, non-success HTTP/status handling and malformed payloads.
 
-## Safety Deltas From Upstream
+The retrospective's fake-token reproduction demonstrated origin mixing and
+unauthenticated-health failure on the previous implementation. The new HTTP
+regression suite also runs against a disposable archive of the pinned baseline
+for red/green evidence. Test outputs and review reports remain outside Git.
 
-This fork intentionally does not mirror upstream installation or bootstrap guidance when that guidance conflicts with the skill safety policy.
+## Limits
 
-Specifically, this fork removes or avoids:
-
-- remote install-script execution
-- automated executable downloads
-- inline secret values in command examples
-- legacy CMS-specific operational playbooks
-- default mutating workflows
-
-## Local Validation Gate
-
-Run:
-
-```bash
-bash tests/safety_regression.sh
-docs-list
-```
-
-`docs-list` is optional in the environment but should pass when present.
+Generic JSON reads recursively project a metadata allowlist; unknown fields,
+connection URLs and configuration blobs are omitted. Env routes use their own
+metadata projection. URI userinfo and private-key blocks in retained strings are
+redacted. This is not general secret detection for arbitrary logs or free-form
+remote text. Endpoint filtering and markers do not make output trusted. HTTP is
+supported for explicitly configured private-network instances; TLS verification
+is retained for HTTPS. Redirects fail closed. The 20-second timeout is per socket
+operation, with a separate 8 MiB response cap; this is not a wall-clock job deadline.
