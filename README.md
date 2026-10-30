@@ -1,96 +1,38 @@
 # Safety Coolify Skill
 
-Safer fork of `ajmcclary/coolify-manager`. This version keeps validated Coolify API and CLI guidance, removes legacy CMS-specific workflows, and strips the unsafe installer/bootstrap patterns that caused the skill checker findings.
+Read-only Coolify diagnostics with credential-scoped HTTP requests, bounded logs,
+filtered environment metadata and an optional authorized CLI mutation workflow.
 
-## What Changed
-
-- Removed bundled CLI download/install automation
-- Removed inline secret examples from commands
-- Removed legacy CMS troubleshooting content
-- Switched to API-first, read-only defaults
-- Added a safe bounded workflow for application log review
-- Added validated CLI guidance for environment-variable changes
-- Added explicit handling rules for untrusted remote output
-- Added a regression check for the previously flagged patterns
-
-## Quick Start
-
-Store the token in a local file instead of placing it on the command line:
-
-```bash
-mkdir -p "$HOME/.config/coolify"
-chmod 700 "$HOME/.config/coolify"
-printf '%s' '<paste token once>' > "$HOME/.config/coolify/token"
-chmod 600 "$HOME/.config/coolify/token"
-
-export COOLIFY_BASE_URL="https://coolify.example.com"
-export COOLIFY_TOKEN_FILE="$HOME/.config/coolify/token"
-```
-
-If `coolify` is already configured locally, you usually do not need those exports. The helper scripts auto-read the default context from `~/.config/coolify/config.json`.
-
-Run the bundled checks:
+Requirements: Python 3.9+ and Bash. Existing CLI context is read from
+`~/.config/coolify/config.json`; neither CLI nor jq is required for API reads.
 
 ```bash
 bash scripts/check_health.sh
 bash scripts/coolify_api.sh /api/v1/resources
+bash scripts/coolify_envs.sh application APP_UUID
 bash scripts/coolify_logs.sh APP_UUID 100
+bash scripts/coolify_deployment.sh DEPLOYMENT_UUID 100
 ```
 
-## Safety Model
+See [SKILL.md](SKILL.md) for context selection, output boundaries and exit codes.
+`--raw` removes markers, never credential filtering. Different-origin URL overrides
+require explicit matching credentials. Requests reject redirects and endpoints
+outside the supported read-only allowlist. Env reads always omit values. Generic
+field filtering is best effort; arbitrary logs can still contain application secrets.
 
-- Read-only first
-- No automated executable downloads
-- No `curl | bash`
-- No raw token in examples
-- No automatic ingestion of remote logs as instructions
-- Any start, stop, restart, deploy, create, update, or delete action requires explicit user approval
-
-## Included Files
-
-```text
-safety-coolify-skill/
-├── README.md
-├── SKILL.md
-├── CLAUDE.md
-├── docs/
-│   └── VALIDATION.md
-├── references/
-│   ├── api_endpoints.md
-│   └── cli_commands.md
-├── scripts/
-│   ├── check_health.sh
-│   └── coolify_api.sh
-│   └── coolify_logs.sh
-└── tests/
-    └── safety_regression.sh
-```
-
-## Validated Surfaces
-
-API guidance in this fork is validated against the official Coolify docs:
-
-- Authorization model and API base paths
-- Health and version checks
-- Application log retrieval
-- Environment variable CRUD and bulk update endpoints
-- Resource, application, service, database, deployment, and env metadata endpoints
-
-CLI guidance in this fork is validated against the official `coollabsio/coolify-cli` README and release metadata, but this fork intentionally does not automate upstream installation flows.
+For an existing CLI, `bash scripts/check_cli.sh` probes `coolify version` and the
+config location. `coolify --version` is unsupported. No executable is downloaded.
 
 ## Development
 
-Run the local gate:
+Install local check prerequisites PyYAML, ShellCheck alongside Python
+and Bash. Run `bash bin/check` for syntax/frontmatter, shell lint, safety checks and
+offline HTTP regression tests. Enable the commit gate:
 
 ```bash
-bash tests/safety_regression.sh
-docs-list
+git config core.hooksPath .githooks
 ```
 
-`docs-list` is optional in the environment but should pass when available.
-
-## Resources
-
-- [Coolify Docs](https://coolify.io/docs)
-- [Coolify API Reference](https://coolify.io/docs/api-reference/api/)
-- [Coolify CLI Repository](https://github.com/coollabsio/coolify-cli)
+Tests run against a local disposable server and fixture credentials, without
+production access. User-visible changes use uniquely named `.changes/*.md`
+fragments. [Validation](docs/VALIDATION.md) records contracts and official sources.

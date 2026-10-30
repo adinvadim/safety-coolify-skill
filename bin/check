@@ -1,0 +1,17 @@
+#!/usr/bin/env bash
+set -euo pipefail
+cd "$(dirname "$0")/.."
+python3 - <<'PY'
+import ast
+from pathlib import Path
+import yaml
+for path in [*Path('scripts').glob('*.py'), *Path('tests').glob('*.py')]:
+    ast.parse(path.read_text(), filename=str(path))
+front = Path('SKILL.md').read_text().split('---', 2)[1]
+metadata = yaml.safe_load(front)
+assert isinstance(metadata, dict) and all(isinstance(metadata.get(k), str) for k in ('name', 'description'))
+assert Path('CLAUDE.md').is_symlink() and Path('CLAUDE.md').resolve() == Path('AGENTS.md').resolve()
+PY
+bash tests/safety_regression.sh
+shellcheck --severity=warning scripts/*.sh tests/*.sh bin/check .githooks/pre-commit
+PYTHONDONTWRITEBYTECODE=1 python3 -m unittest discover -s tests -v

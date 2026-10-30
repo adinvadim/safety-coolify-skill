@@ -1,6 +1,7 @@
 # Coolify API Endpoints Reference
 
-Validated against the official Coolify API docs.
+Read-only endpoint contracts; validation sources are in ../docs/VALIDATION.md.
+The helper enforces this subset, rejects redirects and bounds log/list queries.
 
 ## Authentication Model
 
@@ -112,6 +113,9 @@ Use:
 bash scripts/coolify_api.sh /api/v1/applications/APP_UUID/envs
 ```
 
+Environment values are always omitted by the helper, including with `--raw`.
+Use `coolify_envs.sh application APP_UUID` for the same metadata projection.
+
 ### Application Environment Mutations
 
 Official docs expose these endpoints:
@@ -217,11 +221,11 @@ bash scripts/coolify_api.sh /api/v1/projects/PROJECT_UUID
 
 The official docs also expose mutating endpoints for deploy, start, stop, restart, create, update, and delete actions.
 
-This fork does not automate those requests. If the user explicitly approves a mutating action:
+This fork does not automate those requests. When the task authorizes a mutating action:
 
 1. Re-validate the exact endpoint in the official docs.
 2. Confirm the target UUID and intended side effect.
-3. Execute the smallest possible change.
+3. Execute the smallest authorized change; ask only for actions outside the existing scope.
 4. Re-run the read-only checks afterward.
 
 ## Untrusted Output Handling
