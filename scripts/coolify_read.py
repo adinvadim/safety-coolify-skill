@@ -31,7 +31,7 @@ ip user port is_reachable is_usable concurrent_builds is_build_server
 is_logdrain_enabled health_check_enabled health_check_path is_auto_deploy_enabled
 created_at updated_at finished_at last_online_at deployment_uuid application_name
 deployments count total health authenticated_checks version message resources
-unhealthy logs applications services databases projects servers data'''.split())
+unhealthy applications services databases projects servers data'''.split())
 
 
 class ReadError(Exception):
@@ -179,11 +179,12 @@ def env_metadata(payload):
                             if 'value' in item or 'real_value' in item else None)} for item in payload]
 
 
-def sanitize(value):
+def sanitize(value, include_logs=False):
     if isinstance(value, dict):
-        return {k: sanitize(v) for k, v in value.items() if k in METADATA}
+        return {k: sanitize(v, include_logs) for k, v in value.items()
+                if k in METADATA or (include_logs and k == 'logs')}
     if isinstance(value, list):
-        return [sanitize(v) for v in value]
+        return [sanitize(v, include_logs) for v in value]
     if isinstance(value, str) and (re.search(r'[A-Za-z][A-Za-z0-9+.-]*://[^\s/]*@', value)
                                   or re.search(r'-----BEGIN [A-Z ]*PRIVATE KEY-----', value)):
         return '[REDACTED]'
@@ -210,8 +211,8 @@ def bounded_logs(payload, lines, deployment=False):
     return '\n'.join(text.splitlines()[-lines:])
 
 
-def emit(payload, raw=False):
-    text = json.dumps(sanitize(payload), ensure_ascii=False, indent=2)
+def emit(payload, raw=False, include_logs=False):
+    text = json.dumps(sanitize(payload, include_logs), ensure_ascii=False, indent=2)
     if not raw:
         print(BEGIN)
     print(text)
@@ -267,7 +268,7 @@ def main():
         payload = request(f'/api/v1/applications/{args.uuid}/logs?lines={args.lines}', conn)
         if not isinstance(payload, dict) or 'logs' not in payload:
             raise ReadError('Missing application logs field; payload withheld.')
-        emit({'logs': bounded_logs(payload['logs'], args.lines)})
+        emit({'logs': bounded_logs(payload['logs'], args.lines)}, include_logs=True)
     elif args.action == 'deployment':
         payload = request(f'/api/v1/deployments/{args.uuid}', conn)
         if not isinstance(payload, dict) or not isinstance(payload.get('status'), str):
@@ -275,7 +276,7 @@ def main():
         fields = ('deployment_uuid', 'application_name', 'commit', 'status', 'created_at', 'updated_at', 'finished_at')
         result = {k: payload[k] for k in fields if k in payload}
         result['logs'] = bounded_logs(payload.get('logs') or '', args.lines, deployment=True)
-        emit(result)
+        emit(result, include_logs=True)
         state = payload['status'].lower()
         if state in ('queued', 'in_progress', 'pending', 'starting'):
             return 2
@@ -288,6 +289,13 @@ def main():
         payload = request(args.endpoint, conn)
         if path.endswith('/envs'):
             payload = env_metadata(payload)
+        elif path.endswith('/logs'):
+            if not isinstance(payload, dict) or 'logs' not in payload:
+                raise ReadError('Missing application logs field; payload withheld.')
+            query = urllib.parse.parse_qs(urllib.parse.urlsplit(args.endpoint).query)
+            lines = int(query.get('lines', ['100'])[0])
+            emit({'logs': bounded_logs(payload['logs'], lines)}, args.raw, include_logs=True)
+            return 0
         emit(payload, args.raw)
     return 0
 

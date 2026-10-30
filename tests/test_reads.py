@@ -221,6 +221,24 @@ class Reads(unittest.TestCase):
             data = json.loads('\n'.join(result.stdout.splitlines()[1:-1]))
             self.assertEqual(data['logs'], text)
 
+    def test_generic_deployment_reads_omit_hidden_and_unbounded_logs(self):
+        deployment = {'status': 'finished', 'commit': 'abc123', 'logs': json.dumps([
+            {'output': VALUE, 'hidden': True}, {'output': 'older\nlast'}])}
+        self.routes['/api/v1/deployments/d1'] = (200, deployment)
+        self.routes['/api/v1/deployments/applications/app1?take=3'] = (200, {'deployments': [deployment]})
+        for result in (self.api('/api/v1/deployments/d1'), self.run_script('coolify_api', '/api/v1/deployments/d1'), self.api('/api/v1/deployments/applications/app1?take=3')):
+            self.assertEqual(result.returncode, 0, result.stderr)
+            self.assertNotIn(VALUE, result.stdout)
+            self.assertNotIn('older', result.stdout)
+            self.assertNotIn('"logs"', result.stdout)
+            self.assertIn('abc123', result.stdout)
+
+    def test_generic_application_log_reads_use_the_same_bounded_tail(self):
+        self.routes['/api/v1/applications/app1/logs?lines=1'] = (200, {'logs': 'older\nlast'})
+        result = self.api('/api/v1/applications/app1/logs?lines=1')
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(json.loads(result.stdout), {'logs': 'last'})
+
     def test_disallowed_routes_and_unbounded_limits_make_no_request(self):
         for endpoint in ('/api/v1/deploy?uuid=app1', '/api/v1/applications/app1/restart', '//evil.invalid/api/health', '/api/v1/resources?anything=1', '/api/v1/applications/app1/logs?lines=501', '/api/v1/../deploy'):
             with self.subTest(endpoint=endpoint):

@@ -55,7 +55,8 @@ Prefer the dedicated metadata and deployment commands over full payloads.
 
 Deployment inspection makes one bounded request. It returns commit, status,
 timestamps and a log tail, supports text and JSON-encoded log records, and omits
-hidden records. Exit codes: `0` finished, `2` still pending, `3` missing credentials,
+hidden records. Generic deployment reads omit logs; generic application-log
+reads apply the same bounded tail. Exit codes: `0` finished, `2` still pending, `3` missing credentials,
 `4` not found, `5` failed/cancelled, `1` other errors or unknown state.
 Treat missing/unknown state as unresolved. Use the harness's supported monitoring
 for continued observation; keep HTTP failures visible rather than building ad hoc loops.
